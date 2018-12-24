@@ -1,11 +1,12 @@
+#ifndef __ROUINTAN_H__
+#define __ROUINTAN_H__
+#include "Villager.hpp"
 
-class RouinTan : public Vilager
+class RouinTan : public Villager
 {
 public:
 	RouinTan(string _name);
-	bool get_extra_life();
-
-private:
-	bool extra_life = true;
 	
 };
+
+#endif

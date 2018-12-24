@@ -1,0 +1,12 @@
+Create_room r1 -Mafia 3 -Villager 6 -Doctor 2 -Detective 1 -Silencer 2 -GodFather 1 -Doctor 3
+Create_room r2 -Mafia 4 -Villager 9 -Doctor 2 -Detective 1 -Silencer 1 -GodFather 2
+Switch_room r1
+Join Saman Ali MohammadMohammadi
+Join Amir Erfan Reza Mahsa Faezeh MohammadReza
+Vote Saman Ali
+Vote Mahsa Erfan
+Vote Amir Erfan
+Vote MohammadReza MohammadMohammadi
+Vote Saman Erfan
+Vote Faezeh MohammadMohammadi
+End_vote

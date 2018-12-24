@@ -1,16 +1,16 @@
-
+#include "Room.hpp"
 
 Room::Room(string _name):name(_name)
 {
 }
 
-void Room::set_roles(vector<string>& _roles)
+void Room::set_roles(vector<Role*> _roles)
 {
 	for (int i = 0; i < _roles.size(); ++i)
 		roles.push_back(_roles[i]);
 }
 
-vector<string> Room::get_roles()
+vector<Role*> Room::get_roles()
 {
 	return roles;
 }
@@ -20,103 +20,174 @@ string Room::get_name()
 	return name;
 }
 
-vector<Room*> Room::get_rooms()
+bool Room::user_exists(string username)
 {
-	return rooms;
-}
-
-void Room::add_room(Room* new_room)
-{
-	rooms.push_back(new_room);
-}
-
-Room* Room::find_room(string room_name)
-{
-	for (int i = 0; i < rooms.size(); ++i)
+	for (int i = 0; i < usernames.size(); ++i)
 	{
-		if(rooms[i]->name==room_name)
-			return rooms[i];
+		if(usernames[i] == username)
+			return true;
+	}
+	return false;
+}
+
+void Room::add_usernames(vector<string> _usernames)
+{
+	for (int i = 0; i < _usernames.size(); ++i)
+		usernames.push_back(_usernames[i]);
+	if (usernames.size() == roles_numbers())
+	{
+		set_roles_for_all_usernames();
+		go_to_next_half_day();
+	}
+}
+
+vector<string> Room::get_usernames()
+{
+	return usernames;
+}
+
+int Room::roles_numbers()
+{
+	int numbers = 0;
+	for (int i = 0; i < roles.size(); ++i)
+		numbers += roles[i]->get_number();
+	return numbers;
+}
+
+void Room::set_role_for_a_username()
+{
+	srand(time(0));
+	int index = rand() % usernames.size();
+	Person* new_person;
+	if (roles[roles.size()-1]->get_name() == "Mafia")
+		new_person = new Mafia(usernames[index]);
+	else if (roles[roles.size()-1]->get_name() == "Silencer")
+		new_person = new Silencer(usernames[index]);
+	else if (roles[roles.size()-1]->get_name() == "GodFather")
+		new_person = new GodFather(usernames[index]);
+	else if (roles[roles.size()-1]->get_name() == "Villager")
+		new_person = new Villager(usernames[index]);
+	else if (roles[roles.size()-1]->get_name() == "Doctor")
+		new_person = new Doctor(usernames[index]);
+	else if (roles[roles.size()-1]->get_name() == "Detective")
+		new_person = new Detective(usernames[index]);
+	else if (roles[roles.size()-1]->get_name() == "RouinTan")
+		new_person = new RouinTan(usernames[index]);
+	else if (roles[roles.size()-1]->get_name() == "Joker")
+		new_person = new Joker(usernames[index]);
+	roles[roles.size()-1]->decrease_number();
+	if(roles[roles.size()-1]->get_number() == 0)
+		roles.pop_back();
+	usernames.erase(usernames.begin() + index);
+	persons.push_back(new_person);
+}
+
+void Room::set_roles_for_all_usernames()
+{
+	while(usernames.size()>0)
+		set_role_for_a_username();
+	print_assigned_roles();
+}
+
+void Room::print_assigned_roles()
+{
+	for (int i = 0; i < persons.size(); ++i)
+		cout<<persons[i]->get_name()<<" is "<<persons[i]->get_exact_role()<<endl;
+}
+
+string Room::get_time_state()
+{
+	return time_state;
+}
+
+void Room::set_next_half_day()
+{
+	if(time_state == "Day")
+	{
+		night++;
+		time_state = "Night";
+	}
+	else
+	{
+		day++;
+		time_state = "Day";
+	}
+}
+
+void Room::print_time_state()
+{
+	if(time_state == "Day")
+		cout<<"Day "<<day<<endl;
+	else
+		cout<<"Night "<<night<<endl;
+}
+
+void Room::go_to_next_half_day()
+{
+	set_next_half_day();
+	print_time_state();
+}
+
+Person* Room::find_user(string _username)
+{
+	for (int i = 0; i < persons.size(); ++i)
+	{
+		if(persons[i]->get_name() == _username)
+			return persons[i];
 	}
 	return NULL;
 }
 
-vector<string> split_line(string line)
+int Room::get_most_voted_index()
 {
-	vector<string> splitted_words;
-	string word;
-	while(line[0] == 32)
-		line = line.substr(1,line.length()-1);
-	line.push_back(32);
-	for (int i = 0; i<line.length(); ++i)
+	int index = 0, max = 0;
+	for (int i = 0; i < persons.size(); ++i)
 	{
-		if (line[i] != 32)
-			word.push_back(line[i]);
-		else if(line[i] == 32 && word.length())
+		if (persons[i]->get_gotten_votes() > max)
 		{
-			splitted_words.push_back(word);
-			word.clear();
+			max = persons[i]->get_gotten_votes();
+			index = i;
 		}
 	}
+	return index;
 }
 
-string Room::check_and_get_role_name(string word)
+void Room::remove_suspect()
 {
-	string role_name = word;
-	role_name = role_name.substr(1,role_name.length()-1);
-	if(!role_exists(role_name))
-		throw Exception("Invalid role name");
-	return role_name;
-}
-
-int Room::check_and_get_role_number(string word)
-{
-	int number;
-	try
+	if(time_state == "Day" || time_state == "Night" && !(persons[get_most_voted_index()]->get_healed()) && !(persons[get_most_voted_index()]->get_extra_life()))
 	{
-		number = stoi(word);
-		if(number<=0)
-			throw Exception("Negative number");
+		persons[get_most_voted_index()]->die();
+		print_killed_status(persons[get_most_voted_index()]->get_name());
 	}
-	catch(exception& error)
+	else if(time_state == "Night" && persons[get_most_voted_index()]->get_healed())
+		persons[get_most_voted_index()]->set_healed(false);
+	else if(time_state == "Night" && persons[get_most_voted_index()]->get_extra_life())
+		persons[get_most_voted_index()]->set_extra_life(false);
+}
+
+void Room::empty_votes()
+{
+	for (int i = 0; i < persons.size(); ++i)
 	{
-		throw Exception("Invalid number of roles");
+		persons[i]->set_is_voted_to(NULL);
+		persons[i]->empty_gotten_votes();
 	}
 }
 
-vector<Role*> Room::process_input_roles(string line)
+bool Room::all_mafias_voted()
 {
-	vector<string> words = split_line(line);
-	int number,counter = 0;
-	string role_name;
-	if(words.size()%2)
-		throw Exception("Invalid number of roles");
-	for (int i = 0; i < words.size(); ++i)
+	for (int i = 0; i < persons.size(); ++i)
 	{
-		if(!(counter%2))
-			role_name = check_and_get_role_name(words[i]);
-		else
-			number = check_and_get_role_number(words[i]);
-		if (counter%2)
-		{
-			Role* role = new Role(role_name,number);
-			roles.push_back(role);
-		}
-		counter++;
+		if(persons[i]->get_role() == "Mafia" && persons[i]->get_is_voted_to() == NULL)
+			return false;
 	}
-	return roles;
+	return true;
 }
 
-bool Room::role_exists(string role_name)
+void Room::print_killed_status(string killed_name)
 {
-	return (role_name == "Joker" || role_name == "Villager" || role_name == "Detective" || role_name == "Doctor"
-			|| role_name == "RouinTan" || role_name == "Mafia" || role_name == "GodFather" || role_name == "Silencer");
-}
-
-Room* Room::get_current_room()
-{
-	return current_room;
-}
-void Room::set_current_room(Room* room)
-{
-	current_room = room;
+	if(time_state == "Day")
+		cout<<"Died "<<killed_name<<endl;
+	else
+		cout<<"Mafia try to kill "<<killed_name<<endl;
 }
