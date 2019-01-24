@@ -1,2 +1,2 @@
 # MafiaGame
-The 3rd CA of advanced programming course
+An environment for managing Mafia Game.
